@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>HR System</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; background: #0b0b0d; color: #f5f5f5;
+    font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    display: flex; justify-content: center; align-items: center;
+  }
+  .app {
+    width: min(100%, 1000px); height: 90vh; max-height: 900px;
+    display: flex; flex-direction: column; background: #111114;
+    border: 1px solid #25252b; border-radius: 18px; overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0,0,0,.35);
+  }
+  .header {
+    height: 70px; flex-shrink: 0; display: flex; align-items: center; gap: 12px;
+    padding: 0 20px; border-bottom: 1px solid #25252b; background: #131316;
+  }
+  .avatar {
+    width: 40px; height: 40px; border-radius: 50%; background: #24242a;
+    display: grid; place-items: center; font-weight: 700;
+  }
+  .agent-info h1 { margin: 0; font-size: 15px; }
+  .agent-info p { margin: 3px 0 0; font-size: 12px; color: #8f8f99; }
+  .back {
+    display: none; margin-left: auto; width: auto; height: 36px; padding: 0 14px;
+    font-size: 13px; background: #1c1c21; color: #f5f5f5; border: 1px solid #303038;
+  }
+  .view { display: none; flex: 1; min-height: 0; }
+  .view.active { display: flex; flex-direction: column; }
+
+  /* Home */
+  .home { padding: 40px 28px; overflow-y: auto; }
+  .home h2 { margin: 0 0 6px; font-size: 24px; }
+  .home > p { margin: 0 0 28px; color: #8f8f99; font-size: 14px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+  .card {
+    text-align: left; width: auto; height: auto; padding: 22px; border-radius: 14px;
+    background: #1c1c21; color: #f5f5f5; border: 1px solid #292930; cursor: pointer;
+    font-weight: 400; transition: border-color .15s, transform .15s;
+  }
+  .card:hover { border-color: #55555f; transform: translateY(-2px); opacity: 1; }
+  .card .icon {
+    width: 44px; height: 44px; border-radius: 12px; background: #24242a;
+    display: grid; place-items: center; font-size: 20px; margin-bottom: 14px;
+  }
+  .card h3 { margin: 0 0 6px; font-size: 16px; }
+  .card p { margin: 0; font-size: 13px; line-height: 1.5; color: #8f8f99; }
+
+  /* Embedded frame */
+  .frame-wrap { flex: 1; min-height: 0; background: #fff; }
+  iframe { width: 100%; height: 100%; border: 0; display: block; }
+  .frame-note {
+    padding: 10px 20px; font-size: 12px; color: #8f8f99; background: #131316;
+    border-top: 1px solid #25252b; text-align: center;
+  }
+  .frame-note a { color: #eeeeef; }
+
+  /* Chat */
+  .chat { flex: 1; overflow-y: auto; padding: 28px 24px; display: flex; flex-direction: column; gap: 18px; }
+  .message-row { display: flex; width: 100%; }
+  .message-row.user { justify-content: flex-end; }
+  .message {
+    max-width: 75%; padding: 12px 15px; border-radius: 14px; font-size: 14px;
+    line-height: 1.55; white-space: pre-wrap;
+  }
+  .message.ai { background: #1c1c21; border: 1px solid #292930; border-top-left-radius: 5px; }
+  .message.user { background: #eeeeef; color: #111114; border-top-right-radius: 5px; }
+  .typing {
+    display: none; align-items: center; gap: 4px; width: fit-content; padding: 12px 15px;
+    background: #1c1c21; border: 1px solid #292930; border-radius: 14px; border-top-left-radius: 5px;
+  }
+  .typing span { width: 5px; height: 5px; border-radius: 50%; background: #999; animation: bounce 1s infinite; }
+  .typing span:nth-child(2) { animation-delay: .15s; }
+  .typing span:nth-child(3) { animation-delay: .3s; }
+  @keyframes bounce { 0%,60%,100% { transform: translateY(0); } 30% { transform: translateY(-4px); } }
+  .composer-wrapper { flex-shrink: 0; padding: 16px 20px 20px; border-top: 1px solid #25252b; background: #131316; }
+  .composer {
+    display: flex; align-items: flex-end; gap: 10px; padding: 8px;
+    background: #1a1a1e; border: 1px solid #303038; border-radius: 14px;
+  }
+  textarea {
+    flex: 1; min-height: 42px; max-height: 140px; resize: none; border: 0; outline: 0;
+    background: transparent; color: #f5f5f5; padding: 10px; font: inherit; font-size: 14px;
+  }
+  textarea::placeholder { color: #777780; }
+  button {
+    width: 42px; height: 42px; flex-shrink: 0; border: 0; border-radius: 10px;
+    background: #eeeeef; color: #111114; cursor: pointer; font-size: 16px; font-weight: 700;
+  }
+  button:hover { opacity: .88; }
+  button:disabled { opacity: .4; cursor: not-allowed; }
+  .hint { text-align: center; margin-top: 9px; font-size: 11px; color: #66666e; }
+
+  @media (max-width: 700px) {
+    body { align-items: stretch; }
+    .app { width: 100%; height: 100vh; max-height: none; border: 0; border-radius: 0; }
+    .chat { padding: 20px 15px; }
+    .message { max-width: 85%; }
+    .composer-wrapper { padding: 12px; }
+  }
+</style>
+</head>
+<body>
+<main class="app">
+  <header class="header">
+    <div class="avatar" id="avatar">HR</div>
+    <div class="agent-info">
+      <h1 id="title">HR System</h1>
+      <p id="subtitle">BrightPath Solutions</p>
+    </div>
+    <button class="back" id="backBtn" type="button">← Back</button>
+  </header>
+
+  <section class="view home active" id="home">
+    <h2>Welcome</h2>
+    <p>Choose what you would like to do.</p>
+    <div class="grid" id="grid"></div>
+  </section>
+
+  <section class="view" id="frameView">
+    <div class="frame-wrap"><iframe id="frame" title="Embedded page"></iframe></div>
+    <div class="frame-note">Form not loading? <a id="newTab" href="#" target="_blank" rel="noopener">Open it in a new tab</a></div>
+  </section>
+
+  <section class="view" id="chatView">
+    <div class="chat" id="chat">
+      <div class="message-row"><div class="message ai">Hello! I'm the BrightPath HR assistant. Ask me anything about company policies.</div></div>
+      <div class="message-row" id="typingRow"><div class="typing" id="typing"><span></span><span></span><span></span></div></div>
+    </div>
+    <div class="composer-wrapper">
+      <div class="composer">
+        <textarea id="messageInput" rows="1" placeholder="Message the HR assistant..."></textarea>
+        <button id="sendButton" type="button" aria-label="Send">↑</button>
+      </div>
+      <div class="hint">Press Enter to send · Shift + Enter for a new line</div>
+    </div>
+  </section>
+</main>
+
+<script>
+  /* ============================================================
+     CONFIG
+     ============================================================
+     N8N_WEBHOOK_URL: use the PRODUCTION webhook URL (/webhook/...),
+     not /webhook-test/..., and activate the workflow in n8n.
+
+     MODULES: to add a new page later, add one object to this list.
+       type "frame" -> embeds the url in the page (needs "url")
+       type "chat"  -> opens the HR chatbot
+       type "link"  -> opens the url in a new tab
+  */
+  const N8N_WEBHOOK_URL = "https://ahmed2121.app.n8n.cloud/webhook/brightpath";
+
+  const MODULES = [
+    {
+      id: "leave",
+      icon: "📝",
+      title: "Leave Request",
+      description: "Submit a leave request for manager approval.",
+      type: "frame",
+      url: "https://docs.google.com/forms/d/e/1FAIpQLSdMoKnML1ewm690SO8mXf-u2SPUjYTw1PJqdVzzNyIdVZIUpw/viewform"
+    },
+    {
+      id: "chatbot",
+      icon: "💬",
+      title: "HR Chatbot",
+      description: "Ask questions about leave, benefits, and company policies.",
+      type: "chat"
+    }
+    // Example of a future item:
+    // { id: "x", icon: "📄", title: "Payslips", description: "View your payslips.", type: "link", url: "https://..." }
+  ];
+
+  /* ============================================================ */
+  const $ = (id) => document.getElementById(id);
+  const views = { home: $("home"), frame: $("frameView"), chat: $("chatView") };
+
+  function show(name, mod) {
+    Object.values(views).forEach(v => v.classList.remove("active"));
+    views[name].classList.add("active");
+    $("backBtn").style.display = name === "home" ? "none" : "block";
+    $("title").textContent = mod ? mod.title : "HR System";
+    $("subtitle").textContent = mod ? "HR System" : "BrightPath Solutions";
+    $("avatar").textContent = mod ? mod.icon : "HR";
+  }
+
+  function frameUrl(url) {
+    return url + (url.includes("?") ? "&" : "?") + "embedded=true";
+  }
+
+  function openModule(mod, pushHash = true) {
+    if (mod.type === "link") { window.open(mod.url, "_blank", "noopener"); return; }
+    if (pushHash) location.hash = mod.id;
+    if (mod.type === "frame") {
+      if ($("frame").dataset.src !== mod.url) {
+        $("frame").src = frameUrl(mod.url);
+        $("frame").dataset.src = mod.url;
+      }
+      $("newTab").href = mod.url;
+      show("frame", mod);
+    } else if (mod.type === "chat") {
+      show("chat", mod);
+      $("messageInput").focus();
+    }
+  }
+
+  function goHome() { location.hash = ""; show("home"); }
+
+  // Build home cards from MODULES
+  MODULES.forEach(mod => {
+    const card = document.createElement("button");
+    card.className = "card";
+    card.type = "button";
+    card.innerHTML = '<div class="icon"></div><h3></h3><p></p>';
+    card.querySelector(".icon").textContent = mod.icon;
+    card.querySelector("h3").textContent = mod.title;
+    card.querySelector("p").textContent = mod.description;
+    card.addEventListener("click", () => openModule(mod));
+    $("grid").appendChild(card);
+  });
+
+  $("backBtn").addEventListener("click", goHome);
+
+  // Browser back/forward + direct links like index.html#chatbot
+  function route() {
+    const mod = MODULES.find(m => m.id === location.hash.slice(1));
+    if (mod && mod.type !== "link") openModule(mod, false); else show("home");
+  }
+  window.addEventListener("hashchange", route);
+  route();
+
+  /* ---------------- Chat ---------------- */
+  const chat = $("chat"), input = $("messageInput"), sendButton = $("sendButton");
+  const typingRow = $("typingRow"), typing = $("typing");
+  typingRow.style.display = "none";
+
+  function addMessage(text, sender) {
+    const row = document.createElement("div");
+    row.className = "message-row " + sender;
+    const msg = document.createElement("div");
+    msg.className = "message " + sender;
+    msg.textContent = text;
+    row.appendChild(msg);
+    chat.insertBefore(row, typingRow);
+    chat.scrollTop = chat.scrollHeight;
+  }
+
+  function setTyping(on) {
+    typingRow.style.display = on ? "flex" : "none";
+    typing.style.display = on ? "flex" : "none";
+    chat.scrollTop = chat.scrollHeight;
+  }
+
+  async function sendMessage() {
+    const message = input.value.trim();
+    if (!message) return;
+    addMessage(message, "user");
+    input.value = "";
+    input.style.height = "42px";
+    sendButton.disabled = true;
+    setTyping(true);
+
+    try {
+      const response = await fetch(N8N_WEBHOOK_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message })
+      });
+      if (!response.ok) throw new Error("n8n request failed: " + response.status);
+      const data = await response.json();
+      const reply = data.response ?? data.Response ?? data.output ?? data.message ?? "The agent returned no response.";
+      setTyping(false);
+      addMessage(String(reply), "ai");
+    } catch (err) {
+      setTyping(false);
+      addMessage("Sorry, I couldn't connect to the HR assistant.", "ai");
+      console.error(err);
+    } finally {
+      sendButton.disabled = false;
+      input.focus();
+    }
+  }
+
+  sendButton.addEventListener("click", sendMessage);
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+  });
+  input.addEventListener("input", () => {
+    input.style.height = "auto";
+    input.style.height = Math.min(input.scrollHeight, 140) + "px";
+  });
+</script>
+</body>
+</html>
